@@ -71,7 +71,7 @@ Establish the Python project structure, dependency management, and a verified co
 - `.env.example` already exists in repo root — extend it, do not replace it
 - `.gitignore` already ignores `.env` files — credentials are safe
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ---
 

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "sentinel"
+version = "0.1.0"
+description = "Continuous test maintenance agent for legacy RPG on IBM i"
+requires-python = ">=3.10"
+dependencies = [
+    "itoolkit>=1.7.0",
+    "python-dotenv>=1.0.0",
+    "watchdog>=4.0.0",
+    "rich>=13.0.0",
+    "ibm-watsonx-ai>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-timeout>=2.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sentinel*"]
+
+[project.scripts]
+sentinel = "sentinel.__main__:main"

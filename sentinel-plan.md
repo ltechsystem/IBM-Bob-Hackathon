@@ -98,7 +98,7 @@ Detect when a source member has been successfully compiled and produce a structu
 - Snapshot store lives in `.sentinel_store/` — add this to `.gitignore`
 - Keep the polling interval configurable via an env var `SENTINEL_POLL_INTERVAL_SECS` (default 5)
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ---
 

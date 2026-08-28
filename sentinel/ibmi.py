@@ -172,7 +172,7 @@ def run_cl(command: str) -> str:
 
     from itoolkit import iToolKit, iCmd
 
-    itk = iToolKit(iprod=0, iret=0, ids=1, irow=0)
+    itk = iToolKit(iret=0, ids=1, irow=0)
     itk.add(iCmd("cmd", command))
     itk.call(_transport())
 

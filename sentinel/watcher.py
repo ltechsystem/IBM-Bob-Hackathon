@@ -41,10 +41,11 @@ from sentinel.ibmi import run_cl
 from sentinel.diff import diff_member, commit_snapshot, seed_snapshot, DiffResult
 from sentinel.runner import run_tests, test_suite_name
 from sentinel.parser import parse_output, parse_summary
-from sentinel.models import TestFailure
+from sentinel.models import TestFailure, CoverageReport
 from sentinel.classifier import classify
 from sentinel.proposals import present_proposal
 from sentinel.store import load_snapshot
+from sentinel.coverage import get_coverage
 
 load_dotenv()
 
@@ -174,6 +175,30 @@ def _print_diff_summary(result: DiffResult) -> None:
         console.print(f"[dim]  ... {len(diff_lines) - 40} more lines[/dim]")
 
 
+def _print_coverage_delta(before: CoverageReport, after: CoverageReport) -> None:
+    """Print a before → after coverage delta panel."""
+    if before.procedures_total == 0:
+        console.print("[dim]  Coverage data unavailable (RUCOVERAGE not supported on this system).[/dim]")
+        return
+
+    delta = after.delta_str(before)
+    delta_colour = "green" if not delta.startswith("-") else "red"
+
+    def _bar(report: CoverageReport) -> str:
+        filled = round(10 * report.procedures_covered / report.procedures_total)
+        return "#" * filled + "." * (10 - filled)
+
+    console.print(
+        Panel(
+            f"Before  : {_bar(before)}  {before.procedures_covered}/{before.procedures_total} ({before.pct}%)\n"
+            f"After   : {_bar(after)}  {after.procedures_covered}/{after.procedures_total} ({after.pct}%)\n"
+            f"Delta   : [{delta_colour}][bold]{delta}[/bold][/{delta_colour}]",
+            title="[bold cyan]Coverage[/bold cyan]",
+            border_style="cyan",
+        )
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main watch loop
 # ---------------------------------------------------------------------------
@@ -228,8 +253,11 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                 if not result.has_changes:
                     continue
 
-                # 2. Run tests
+                # 2. Coverage — before
                 suite = test_suite_name(result.mbr)
+                coverage_before = get_coverage(result.lib, suite)
+
+                # 3. Run tests
                 console.print(f"[dim]  Running test suite {suite}...[/dim]")
                 raw = run_tests(result.lib, suite)
                 summary = parse_summary(raw)
@@ -273,6 +301,9 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                             continue
 
                         present_proposal(classification, result.mbr)
+
+                # 4. Coverage — after, print delta
+                _print_coverage_delta(coverage_before, get_coverage(result.lib, suite, after=True))
 
         except KeyboardInterrupt:
             console.print("\n[dim]Sentinel stopped.[/dim]")

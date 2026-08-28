@@ -1,0 +1,28 @@
+# ============================================
+# Sentinel — Python dependencies
+# ============================================
+# Install with:
+#   pip install -r requirements.txt
+#
+# Python 3.10+ required
+# ============================================
+
+# IBM i connection via XMLSERVICE HTTP transport
+itoolkit>=1.7.0
+
+# Load .env file into environment variables
+python-dotenv>=1.0.0
+
+# File system watcher (used for local file watching utilities)
+watchdog>=4.0.0
+
+# Rich terminal output — coloured diffs, panels, tables, progress
+rich>=13.0.0
+
+# ============================================
+# NOT included here — install separately:
+# ============================================
+# Bob Shell CLI — the AI reasoning engine
+#   Download and install from: bob.ibm.com
+#   Required for real classification (SENTINEL_BOB_STUB=false)
+#   Auth: set BOBSHELL_API_KEY in .env

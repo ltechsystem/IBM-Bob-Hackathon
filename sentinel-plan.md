@@ -127,7 +127,7 @@ Invoke the RPGUnit test runner against the affected test suite on IBM i and pars
 - `sentinel/ibmi.py` `run_cl` is the execution primitive
 - `TestFailure` dataclass lives in `sentinel/models.py` (create this file)
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ---
 

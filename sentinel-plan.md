@@ -9,7 +9,7 @@ Sentinel is a Python background agent that watches an IBM i source member codeba
 **Review layer:** CLI diff view (web view is a stretch goal)
 **Environment:** Live IBM i with RPGUnit installed
 **Test suite naming convention:** Append `T` suffix (e.g. `ORDCALC` → `ORDCALCT`)
-**Bob integration:** `ibm-watsonx-ai` Python SDK calling watsonx.ai inference API directly
+**Bob integration:** Bob Shell non-interactive (`bob --auth-method api-key -p "..."`) — Bob is the reasoning engine, invoked as a subprocess with `BOBSHELL_API_KEY`
 
 **Scope boundary:** Procedure-level unit tests only. No DB2 integration, no cross-module analysis, no IDE extension, no multi-user persistence, no auth.
 
@@ -158,7 +158,7 @@ For each `TestFailure`, call Bob with a structured prompt containing the change 
 - Prompt file in `sentinel/prompts/classify.txt` keeps the prompt reviewable and editable without touching Python code
 - The four-field response format must be strict enough to parse reliably; if Bob returns freeform text, the parser should log a warning and return `UNCERTAIN`
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ---
 
@@ -291,10 +291,8 @@ Sub-Tasks 4 and 5 can be developed with stub data before Sub-Tasks 2 and 3 are c
 | `IBMI_HOST` | IBM i hostname | — |
 | `IBMI_USER` | IBM i username | — |
 | `IBMI_PASSWORD` | IBM i password | — |
-| `WATSONX_API_KEY` | watsonx.ai API key | — |
-| `WATSONX_PROJECT_ID` | watsonx.ai project ID | — |
-| `WATSONX_URL` | watsonx.ai service URL | — |
-| `WATSONX_MODEL_ID` | Model to use for classification | `ibm/granite-13b-instruct-v2` |
+| `BOBSHELL_API_KEY` | Bob Shell Inference-scoped API key (from bob.ibm.com) | — |
 | `SENTINEL_POLL_INTERVAL_SECS` | Watcher poll interval | `5` |
 | `SENTINEL_CONFIDENCE_THRESHOLD` | Min confidence for auto-verdict | `0.75` |
-| `SENTINEL_BOB_STUB` | Skip real Bob call | `false` |
+| `SENTINEL_BOB_STUB` | Skip real Bob Shell call | `false` |
+| `SENTINEL_BOB_STUB_VERDICT` | Stub verdict for development | `stale` |

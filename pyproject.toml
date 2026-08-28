@@ -12,7 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "watchdog>=4.0.0",
     "rich>=13.0.0",
-    "ibm-watsonx-ai>=1.0.0",
+    # Bob Shell (bob CLI) is used for inference — install separately from bob.ibm.com
 ]
 
 [project.optional-dependencies]

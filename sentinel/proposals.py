@@ -112,7 +112,7 @@ def _open_in_editor(content: str) -> str:
 def _save_accepted(member: str, patch: str) -> Path:
     path = _patch_path(member, "patch")
     path.write_text(patch, encoding="utf-8")
-    console.print(f"[green]  ✓ Patch saved → {path}[/green]")
+    console.print(f"[green]  Patch saved -> {path}[/green]")
     return path
 
 
@@ -184,7 +184,7 @@ def _handle_regression(classification: Classification, member: str) -> str:
             f"[bold white]Confidence:[/bold white] {classification.confidence:.0%}\n\n"
             f"[white]{classification.rationale}[/white]\n\n"
             "[bold red]The test is correct. Fix the source code, not the test.[/bold red]",
-            title="[bold red]⛔  REGRESSION DETECTED — manual review required[/bold red]",
+            title="[bold red]REGRESSION DETECTED -- manual review required[/bold red]",
             border_style="red",
         )
     )
@@ -201,7 +201,7 @@ def _handle_uncertain(classification: Classification, member: str) -> str:
             f"[bold white]Confidence:[/bold white] {classification.confidence:.0%}  "
             f"[dim](below {threshold:.0%} threshold)[/dim]\n\n"
             f"[white]{classification.rationale}[/white]",
-            title="[bold yellow]❓  UNCERTAIN — Bob could not classify with enough confidence[/bold yellow]",
+            title="[bold yellow]UNCERTAIN -- Bob could not classify with enough confidence[/bold yellow]",
             border_style="yellow",
         )
     )

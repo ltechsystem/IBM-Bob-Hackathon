@@ -60,7 +60,7 @@ def _is_stub() -> bool:
 _STUB_MEMBERS: dict[str, str] = {
     "ORDCALC": textwrap.dedent("""\
         **FREE
-        // ORDCALC - Order calculation procedure
+        // ORDCALC - Order calculation procedure (base)
         ctl-opt nomain;
 
         dcl-proc calcTotal export;
@@ -72,7 +72,7 @@ _STUB_MEMBERS: dict[str, str] = {
 
           dcl-s total packed(11:2);
           total = qty * price * (1 - disc / 100);
-          total = %dech(total: 11: 2);
+          total = %dech(total: 11: 2);  // round to 2 dp
           return total;
         end-proc;
     """),
@@ -98,6 +98,52 @@ _STUB_MEMBERS: dict[str, str] = {
           iEqual(9.99: result);
         end-proc;
     """),
+}
+
+# Changed source variants — used when SENTINEL_STUB_SCENARIO is not all_pass.
+# one_failure  → rounding rule changed to 1 dp (makes test_rounding stale)
+# regression   → off-by-one in qty  (genuine bug in test_basicCalc)
+_STUB_MEMBERS_CHANGED: dict[str, dict[str, str]] = {
+    "one_failure": {
+        "ORDCALC": textwrap.dedent("""\
+            **FREE
+            // ORDCALC - Order calculation procedure (step1: 1-dp rounding)
+            ctl-opt nomain;
+
+            dcl-proc calcTotal export;
+              dcl-pi *n packed(11:2);
+                qty   packed(7:0) const;
+                price packed(11:2) const;
+                disc  packed(5:2) const;
+              end-pi;
+
+              dcl-s total packed(11:2);
+              total = qty * price * (1 - disc / 100);
+              total = %dech(total: 11: 1);  // CHANGED: round to 1 dp
+              return total;
+            end-proc;
+        """),
+    },
+    "regression": {
+        "ORDCALC": textwrap.dedent("""\
+            **FREE
+            // ORDCALC - Order calculation procedure (step2: off-by-one bug)
+            ctl-opt nomain;
+
+            dcl-proc calcTotal export;
+              dcl-pi *n packed(11:2);
+                qty   packed(7:0) const;
+                price packed(11:2) const;
+                disc  packed(5:2) const;
+              end-pi;
+
+              dcl-s total packed(11:2);
+              total = (qty - 1) * price * (1 - disc / 100);  // BUG: qty-1
+              total = %dech(total: 11: 2);
+              return total;
+            end-proc;
+        """),
+    },
 }
 
 _STUB_DEFAULT_SOURCE = textwrap.dedent("""\
@@ -220,7 +266,9 @@ def get_source_member(lib: str, srcpf: str, mbr: str) -> str:
         IBMiError: if the member cannot be read (real mode only).
     """
     if _is_stub():
-        source = _STUB_MEMBERS.get(mbr.upper(), _STUB_DEFAULT_SOURCE)
+        scenario = os.environ.get("SENTINEL_STUB_SCENARIO", "one_failure")
+        changed = _STUB_MEMBERS_CHANGED.get(scenario, {})
+        source = changed.get(mbr.upper()) or _STUB_MEMBERS.get(mbr.upper(), _STUB_DEFAULT_SOURCE)
         return source
 
     ifs_path = (

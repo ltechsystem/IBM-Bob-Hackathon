@@ -126,7 +126,7 @@ def detect_compile_events(lib: str, srcpf: str, mbr: str) -> list[CompileEvent]:
 
 def _print_event(event: CompileEvent) -> None:
     console.print(
-        f"[bold cyan]⚙  Compile detected[/bold cyan] "
+        f"[bold cyan]>>  Compile detected[/bold cyan] "
         f"[white]{event.lib}/{event.srcpf}/{event.mbr}[/white] "
         f"[dim]({event.message_id})[/dim]"
     )
@@ -224,7 +224,7 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
         Panel(
             f"Watching [bold]{lib}/{srcpf}/{mbr}[/bold]{stub_note}\n"
             f"Poll interval: [bold]{interval}s[/bold]  ·  Press Ctrl+C to stop",
-            title="[bold blue]🛡 Sentinel Watcher[/bold blue]",
+            title="[bold blue]Sentinel Watcher[/bold blue]",
             border_style="blue",
         )
     )
@@ -268,7 +268,7 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                 passed   = total - fail_cnt - summary["errors"]
 
                 if fail_cnt == 0:
-                    console.print(f"[green]  ✓ All {total} test(s) passed.[/green]")
+                    console.print(f"[green]  All {total} test(s) passed.[/green]")
                     commit_snapshot(result)
                     console.print("[dim]  Snapshot updated.[/dim]")
                 else:
@@ -312,7 +312,11 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
             console.print(f"[red]  Watcher error: {exc}[/red]")
 
         if once:
-            return last_result
+            if last_result is not None:
+                return last_result
+            # Stub emits events on even ticks only — poll once more before giving up
+            time.sleep(0)
+            continue
 
         time.sleep(interval)
 

@@ -15,6 +15,10 @@ importing this module, or call dotenv.load_dotenv() in your entry point):
     IBMI_PASSWORD   password
     IBMI_PORT       XMLSERVICE HTTP port (default: 80)
 
+    IBMI_STUB       set to "true" to skip all real IBM i calls and return
+                    deterministic fake data.  Safe for development when no
+                    IBM i system is available yet.
+
 Transport: itoolkit HttpTransport connecting to the XMLSERVICE CGI endpoint:
     http://<IBMI_HOST>:<IBMI_PORT>/cgi-bin/xmlcgi.pgm
 
@@ -25,10 +29,8 @@ IBM i partition.  No ODBC driver or Zend Server is needed.
 from __future__ import annotations
 
 import os
+import textwrap
 from functools import lru_cache
-
-from itoolkit import iToolKit, iCmd
-from itoolkit.transport import HttpTransport
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +46,75 @@ class IBMiError(RuntimeError):
 
 
 # ---------------------------------------------------------------------------
-# Internal helpers
+# Stub helpers
+# ---------------------------------------------------------------------------
+
+def _is_stub() -> bool:
+    """Return True when IBMI_STUB env var is set to a truthy value."""
+    return os.environ.get("IBMI_STUB", "false").strip().lower() in ("1", "true", "yes")
+
+
+# Fake source members returned in stub mode.
+# ORDCALC  — the demo calculation module (initial clean version)
+# ORDCALCT — corresponding RPGUnit test suite
+_STUB_MEMBERS: dict[str, str] = {
+    "ORDCALC": textwrap.dedent("""\
+        **FREE
+        // ORDCALC - Order calculation procedure
+        ctl-opt nomain;
+
+        dcl-proc calcTotal export;
+          dcl-pi *n packed(11:2);
+            qty   packed(7:0) const;
+            price packed(11:2) const;
+            disc  packed(5:2) const;
+          end-pi;
+
+          dcl-s total packed(11:2);
+          total = qty * price * (1 - disc / 100);
+          total = %dech(total: 11: 2);
+          return total;
+        end-proc;
+    """),
+    "ORDCALCT": textwrap.dedent("""\
+        **FREE
+        // ORDCALCT - RPGUnit tests for ORDCALC
+
+        dcl-proc test_basicCalc;
+          dcl-s result packed(11:2);
+          result = calcTotal(10: 5.00: 0);
+          iEqual(50.00: result);
+        end-proc;
+
+        dcl-proc test_discountApplied;
+          dcl-s result packed(11:2);
+          result = calcTotal(10: 5.00: 10);
+          iEqual(45.00: result);
+        end-proc;
+
+        dcl-proc test_rounding;
+          dcl-s result packed(11:2);
+          result = calcTotal(3: 3.33: 0);
+          iEqual(9.99: result);
+        end-proc;
+    """),
+}
+
+_STUB_DEFAULT_SOURCE = textwrap.dedent("""\
+    **FREE
+    // Stub source member — set IBMI_STUB=false and provide real IBM i
+    // credentials to read actual source members.
+    ctl-opt nomain;
+    dcl-proc stubProc export;
+      return;
+    end-proc;
+""")
+
+_STUB_CL_OUTPUT = "+++ success"
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers (real IBM i path)
 # ---------------------------------------------------------------------------
 
 def _require_env(name: str) -> str:
@@ -53,31 +123,27 @@ def _require_env(name: str) -> str:
     if not value:
         raise ConfigurationError(
             f"Required environment variable {name!r} is not set. "
-            "Copy .env.example to .env and fill in your IBM i credentials."
+            "Copy .env.example to .env and fill in your IBM i credentials, "
+            "or set IBMI_STUB=true to run without a real IBM i connection."
         )
     return value
 
 
 @lru_cache(maxsize=1)
-def _transport() -> HttpTransport:
+def _transport():
     """
     Build and cache one HttpTransport for the lifetime of the process.
 
-    The cache is keyed on the function itself (no args), so the first call
-    reads env vars and constructs the transport; every subsequent call returns
-    the same object.  Call _transport.cache_clear() in tests to reset it.
+    Call _transport.cache_clear() in tests to reset between cases.
     """
+    from itoolkit.transport import HttpTransport
+
     host = _require_env("IBMI_HOST")
     user = _require_env("IBMI_USER")
     password = _require_env("IBMI_PASSWORD")
     port = int(os.environ.get("IBMI_PORT", "80"))
     url = f"http://{host}:{port}/cgi-bin/xmlcgi.pgm"
     return HttpTransport(url, user, password)
-
-
-def _run_itk(itk: iToolKit) -> None:
-    """Execute *itk* against the cached transport."""
-    itk.call(_transport())
 
 
 # ---------------------------------------------------------------------------
@@ -88,30 +154,30 @@ def run_cl(command: str) -> str:
     """
     Run a CL command on IBM i and return the output as a string.
 
-    The command is sent via XMLSERVICE iCmd.  itoolkit parses the XML
-    response; any text rows are joined with newlines and returned.  If
-    XMLSERVICE reports an error the raw error string is raised as IBMiError.
+    When IBMI_STUB=true, returns a fixed success string without contacting
+    any IBM i system.
 
     Args:
-        command: CL command string, e.g. ``"DSPJOB"`` or
-                 ``"DSPMSGD MSGID(CPF0000) MSGF(QCPFMSG)"``
+        command: CL command string, e.g. ``"DSPJOB"``
 
     Returns:
-        Textual output of the command (may be empty for commands that produce
-        no spooled output).
+        Textual output of the command.
 
     Raises:
-        ConfigurationError: if IBM i env vars are missing.
-        IBMiError: if XMLSERVICE reports a command error.
+        ConfigurationError: if IBM i env vars are missing (real mode only).
+        IBMiError: if XMLSERVICE reports a command error (real mode only).
     """
+    if _is_stub():
+        return _STUB_CL_OUTPUT
+
+    from itoolkit import iToolKit, iCmd
+
     itk = iToolKit(iprod=0, iret=0, ids=1, irow=0)
     itk.add(iCmd("cmd", command))
-    _run_itk(itk)
+    itk.call(_transport())
 
     result = itk["cmd"]
 
-    # itoolkit returns the parsed response as a dict.
-    # A successful iCmd response contains '+++ success' in the 'success' key.
     if isinstance(result, dict):
         success_flag = str(result.get("success", ""))
         error_flag = result.get("error", result.get("xmlerrmsg", ""))
@@ -121,16 +187,13 @@ def run_cl(command: str) -> str:
                 f"CL command failed — command: {command!r}  error: {error_flag}"
             )
 
-        # Collect output rows if present
         rows = result.get("row", [])
         if isinstance(rows, list):
             return "\n".join(str(r) for r in rows)
         if rows:
             return str(rows)
-        # No rows — return the success text so callers can assert non-empty
         return success_flag
 
-    # Fallback: stringify whatever itoolkit returned
     return str(result)
 
 
@@ -138,16 +201,11 @@ def get_source_member(lib: str, srcpf: str, mbr: str) -> str:
     """
     Retrieve the full text of an IBM i source member.
 
-    Reads the member via its IFS path:
+    When IBMI_STUB=true, returns stub RPG source for known demo members
+    (ORDCALC, ORDCALCT) and a generic stub for anything else.
+
+    In real mode, reads via IFS path:
         /QSYS.LIB/<LIB>.LIB/<SRCPF>.FILE/<MBR>.MBR
-
-    Uses ``QSH CMD('cat <path>')`` so no ODBC or special authority beyond
-    read access to the source file is needed.  Available on V7R1 and later.
-
-    Sequence numbers and date stamps (columns 1-12 of a fixed-format SRCPF
-    record) are **not** stripped here — callers that need clean source should
-    strip them themselves.  The diff engine in ``sentinel/diff.py`` handles
-    this.
 
     Args:
         lib:   Library name, e.g. ``"MYLIB"``
@@ -155,16 +213,19 @@ def get_source_member(lib: str, srcpf: str, mbr: str) -> str:
         mbr:   Member name, e.g. ``"ORDCALC"``
 
     Returns:
-        The raw source text of the member (lines joined with newlines).
+        The raw source text of the member.
 
     Raises:
-        ConfigurationError: if IBM i env vars are missing.
-        IBMiError: if the member cannot be read or returns empty content.
+        ConfigurationError: if IBM i env vars are missing (real mode only).
+        IBMiError: if the member cannot be read (real mode only).
     """
+    if _is_stub():
+        source = _STUB_MEMBERS.get(mbr.upper(), _STUB_DEFAULT_SOURCE)
+        return source
+
     ifs_path = (
         f"/QSYS.LIB/{lib.upper()}.LIB/{srcpf.upper()}.FILE/{mbr.upper()}.MBR"
     )
-    # QSH cat is the simplest portable way to stream a source member as text
     raw = run_cl(f"QSH CMD('cat {ifs_path}')")
 
     if not raw or not raw.strip():

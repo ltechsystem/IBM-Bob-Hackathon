@@ -42,6 +42,9 @@ from sentinel.diff import diff_member, commit_snapshot, seed_snapshot, DiffResul
 from sentinel.runner import run_tests, test_suite_name
 from sentinel.parser import parse_output, parse_summary
 from sentinel.models import TestFailure
+from sentinel.classifier import classify
+from sentinel.proposals import present_proposal
+from sentinel.store import load_snapshot
 
 load_dotenv()
 
@@ -250,7 +253,26 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                             border_style="red",
                         )
                     )
-                    # Sub-Tasks 4+5 will classify and propose fixes from here
+
+                    # Load the last-known-good test snapshot so Bob has context
+                    last_good_test = load_snapshot(result.lib, result.srcpf, suite) or ""
+
+                    # Classify and propose fixes for each failure
+                    for failure in failures:
+                        console.print(
+                            f"[dim]  Classifying failure: {failure.procedure or failure.summary}...[/dim]"
+                        )
+                        try:
+                            classification = classify(
+                                result.unified_diff,
+                                failure,
+                                last_good_test,
+                            )
+                        except Exception as exc:
+                            console.print(f"[red]  Classifier error: {exc}[/red]")
+                            continue
+
+                        present_proposal(classification, result.mbr)
 
         except KeyboardInterrupt:
             console.print("\n[dim]Sentinel stopped.[/dim]")

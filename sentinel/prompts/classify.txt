@@ -1,0 +1,39 @@
+## Source Change (unified diff)
+
+```
+{diff}
+```
+
+---
+
+## Failing Test (current source)
+
+```rpgle
+{failing_test}
+```
+
+---
+
+## Last Passing Test (snapshot before changes)
+
+```rpgle
+{last_good_test}
+```
+
+---
+
+## Assertion Failure Output
+
+```
+{assertion_output}
+```
+
+---
+
+Classify this failure. Respond using EXACTLY the four-field format defined in your instructions:
+
+VERDICT: <STALE|REGRESSION|NEW_COVERAGE_NEEDED>
+CONFIDENCE: <0.0-1.0>
+RATIONALE: <one or two sentences>
+PROPOSED_PATCH:
+<unified diff or empty>

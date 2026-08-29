@@ -1,14 +1,18 @@
+import asyncio
+import json
 import logging
-from typing import Dict, List
+from typing import AsyncIterator, Dict, List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from api.models import (
     ClassificationResult,
     EvidencePayload,
     EvidenceRequest,
     ReviewActionRequest,
+    SentinelEvent,
 )
 from api.evidence_service import get_evidence
 
@@ -28,6 +32,7 @@ app.add_middleware(
     allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Type"],
 )
 
 # ---------------------------------------------------------------------------
@@ -36,6 +41,12 @@ app.add_middleware(
 
 # Keyed by test_name; last classification wins.
 results_store: Dict[str, ClassificationResult] = {}
+
+# Ordered list of sentinel watcher lifecycle events.
+sentinel_events: List[SentinelEvent] = []
+
+# SSE subscriber queues — each connected UI client gets its own queue.
+_sse_subscribers: List[asyncio.Queue] = []
 
 
 # ---------------------------------------------------------------------------
@@ -120,3 +131,79 @@ def review_action(req: ReviewActionRequest):
         req.action,
     )
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# POST /sentinel/event
+# sentinel/watcher.py (and proposals.py) call this to push lifecycle events.
+# ---------------------------------------------------------------------------
+
+@app.post("/sentinel/event", tags=["sentinel"])
+async def sentinel_event(event: SentinelEvent):
+    """
+    Accept a lifecycle event from the Sentinel watcher and broadcast it to
+    all connected SSE clients.
+
+    Called by sentinel/watcher.py at each pipeline stage:
+      WATCHER_STARTED → COMPILE_DETECTED → DIFF_READY → TESTS_RUNNING →
+      TESTS_PASSED|TESTS_FAILED → CLASSIFYING → CLASSIFICATION_READY →
+      SNAPSHOT_UPDATED (on pass) | no snapshot update (on fail)
+    """
+    sentinel_events.append(event)
+    logger.info("Sentinel event: %s  member=%s", event.event_type, event.member)
+
+    # Fan-out to all SSE subscribers
+    payload = event.model_dump_json()
+    for q in list(_sse_subscribers):
+        await q.put(payload)
+
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# GET /sentinel/events  — full history (REST poll fallback)
+# ---------------------------------------------------------------------------
+
+@app.get("/sentinel/events", response_model=List[SentinelEvent], tags=["sentinel"])
+def list_sentinel_events(member: str | None = None):
+    """Return all stored sentinel lifecycle events, optionally filtered by member."""
+    if member:
+        return [e for e in sentinel_events if e.member.upper() == member.upper()]
+    return sentinel_events
+
+
+# ---------------------------------------------------------------------------
+# GET /sentinel/stream  — Server-Sent Events live stream
+# ---------------------------------------------------------------------------
+
+@app.get("/sentinel/stream", tags=["sentinel"])
+async def sentinel_stream():
+    """
+    SSE endpoint.  The React UI connects here to receive real-time sentinel
+    lifecycle events without polling.
+
+    Each event is emitted as:
+        data: <JSON>\n\n
+    """
+    queue: asyncio.Queue = asyncio.Queue()
+    _sse_subscribers.append(queue)
+
+    async def _generate() -> AsyncIterator[str]:
+        # Replay existing events so a freshly-loaded page catches up
+        for event in sentinel_events:
+            yield f"data: {event.model_dump_json()}\n\n"
+        try:
+            while True:
+                payload = await queue.get()
+                yield f"data: {payload}\n\n"
+        finally:
+            _sse_subscribers.remove(queue)
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

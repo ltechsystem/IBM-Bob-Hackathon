@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -162,3 +163,37 @@ class ClassificationResult(BaseModel):
 class ReviewActionRequest(BaseModel):
     test_name: str = Field(..., description="RPGUnit test procedure name")
     action: ReviewAction = Field(..., description="ACCEPT | REJECT | FLAG")
+
+
+# ---------------------------------------------------------------------------
+# Sentinel watcher lifecycle events (posted by watcher.py, consumed by UI)
+# ---------------------------------------------------------------------------
+
+class SentinelEventType(str, Enum):
+    WATCHER_STARTED = "WATCHER_STARTED"
+    COMPILE_DETECTED = "COMPILE_DETECTED"
+    DIFF_READY = "DIFF_READY"
+    TESTS_RUNNING = "TESTS_RUNNING"
+    TESTS_PASSED = "TESTS_PASSED"
+    TESTS_FAILED = "TESTS_FAILED"
+    CLASSIFYING = "CLASSIFYING"
+    CLASSIFICATION_READY = "CLASSIFICATION_READY"
+    SNAPSHOT_UPDATED = "SNAPSHOT_UPDATED"
+    WATCHER_ERROR = "WATCHER_ERROR"
+    WATCHER_STOPPED = "WATCHER_STOPPED"
+
+
+class SentinelEvent(BaseModel):
+    """A lifecycle event emitted by sentinel/watcher.py and stored for the UI."""
+    event_type: SentinelEventType
+    member: str = Field(..., description="IBM i member name, e.g. ORDCALC")
+    lib: str = Field("", description="IBM i library")
+    srcpf: str = Field("", description="Source physical file")
+    message: str = Field("", description="Human-readable description")
+    # Optional structured payload — keyed to the event type
+    diff: Optional[str] = Field(None, description="Unified diff (DIFF_READY only)")
+    test_output: Optional[str] = Field(None, description="Raw RPGUnit output (TESTS_* only)")
+    tests_run: Optional[int] = None
+    tests_failed: Optional[int] = None
+    test_name: Optional[str] = Field(None, description="Test procedure name (CLASSIFYING / CLASSIFICATION_READY)")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)

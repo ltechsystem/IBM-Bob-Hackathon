@@ -4,13 +4,13 @@ from typing import Dict, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.models import (
+from api.models import (
     ClassificationResult,
     EvidencePayload,
     EvidenceRequest,
     ReviewActionRequest,
 )
-from backend.evidence_service import get_evidence
+from api.evidence_service import get_evidence
 
 logger = logging.getLogger(__name__)
 

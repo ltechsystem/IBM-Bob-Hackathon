@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.models import (
+from api.models import (
     Classification,
     RecommendedAction,
     ReviewAction,

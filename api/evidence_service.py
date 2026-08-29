@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-from backend.models import EvidencePayload, EvidenceRequest
+from api.models import EvidencePayload, EvidenceRequest
 
 DEMO_CASES_DIR = Path(__file__).parent / "demo_cases"
 VALID_DEMO_CASES = {"stale_test", "regression", "uncertain"}

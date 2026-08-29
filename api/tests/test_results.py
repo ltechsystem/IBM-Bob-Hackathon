@@ -3,8 +3,8 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from backend.main import app, results_store
-from backend.models import Classification, RecommendedAction
+from api.main import app, results_store
+from api.models import Classification, RecommendedAction
 
 
 # ---------------------------------------------------------------------------

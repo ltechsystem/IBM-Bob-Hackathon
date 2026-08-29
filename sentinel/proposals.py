@@ -32,6 +32,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -43,6 +44,66 @@ from rich.rule import Rule
 from sentinel.models import Classification
 
 console = Console()
+
+# ---------------------------------------------------------------------------
+# Frontend API bridge
+# ---------------------------------------------------------------------------
+
+def _api_base() -> str:
+    """Return the FastAPI base URL from SENTINEL_API_URL (default: http://localhost:8000)."""
+    return os.environ.get("SENTINEL_API_URL", "http://localhost:8000").rstrip("/")
+
+
+def _post_classification_to_api(classification: Classification, test_name: str) -> bool:
+    """
+    POST the classification result to the FastAPI /classification-result endpoint so
+    the React frontend can display and review it.
+
+    Converts sentinel.models.Classification (STALE / REGRESSION / NEW_COVERAGE_NEEDED /
+    UNCERTAIN) → api.models.ClassificationResult schema.
+
+    Returns True if the POST succeeded, False if the API is unreachable or returns an error.
+    The caller should fall through to CLI mode on False.
+    """
+    try:
+        import urllib.request
+        import json as _json
+
+        # Map sentinel verdict → api Classification + RecommendedAction
+        _VERDICT_MAP = {
+            "STALE":               ("STALE_TEST", "UPDATE_TEST"),
+            "NEW_COVERAGE_NEEDED": ("STALE_TEST", "ADD_TEST"),
+            "REGRESSION":          ("REGRESSION", "FIX_CODE"),
+            "UNCERTAIN":           ("UNCERTAIN",  "ASK_HUMAN"),
+        }
+        api_classification, recommended_action = _VERDICT_MAP.get(
+            classification.verdict, ("UNCERTAIN", "ASK_HUMAN")
+        )
+
+        payload = {
+            "test_name":           test_name,
+            "classification":      api_classification,
+            "confidence":          classification.confidence,
+            "reason":              classification.rationale,
+            "recommended_action":  recommended_action,
+            "proposed_diff":       classification.proposed_patch or None,
+            "needs_human_review":  classification.verdict in ("REGRESSION", "UNCERTAIN")
+                                   or classification.confidence < 0.6,
+        }
+
+        data = _json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{_api_base()}/classification-result",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status == 200
+    except Exception as exc:
+        console.print(f"[dim]  API unreachable ({exc!s:.60}) — falling back to CLI review.[/dim]")
+        return False
+
 
 # ---------------------------------------------------------------------------
 # Proposals directory
@@ -264,24 +325,47 @@ def _handle_uncertain(classification: Classification, member: str) -> str:
 # Public API
 # ---------------------------------------------------------------------------
 
-def present_proposal(classification: Classification, member: str) -> str:
+def present_proposal(
+    classification: Classification,
+    member: str,
+    test_name: Optional[str] = None,
+) -> str:
     """
     Present a classification result to the developer and handle their response.
 
-    Called by watcher.py after the Bob classifier returns a result for
-    each failing test.
+    Routing logic
+    -------------
+    1. Try to POST the classification to the FastAPI /classification-result
+       endpoint so the React frontend can display and review it.
+       If that succeeds, print a notice and return 'sent_to_frontend'.
+
+    2. If the API is unreachable (frontend absent / watcher running standalone),
+       fall through to the existing rich CLI review flow.
 
     Args:
         classification: The Classification from sentinel/classifier.py
         member:         Source member name (e.g. "ORDCALC") used for
                         naming saved patch files.
+        test_name:      Optional RPGUnit test procedure name; defaults to member
+                        if not provided.
 
     Returns:
-        One of: 'accepted' | 'rejected' | 'edited' | 'regression' |
-                'skipped' | 'no_patch'
+        One of: 'sent_to_frontend' | 'accepted' | 'rejected' | 'edited' |
+                'regression' | 'skipped' | 'no_patch'
     """
+    resolved_test_name = test_name or member.upper()
+
     console.print(Rule(f"[bold]Sentinel Proposal — {member.upper()}[/bold]", style="blue"))
 
+    # --- Try frontend API first ---
+    if _post_classification_to_api(classification, resolved_test_name):
+        console.print(
+            f"[green]  Classification sent to frontend UI.[/green]  "
+            f"[dim]Open the Sentinel tab in the React app to review.[/dim]"
+        )
+        return "sent_to_frontend"
+
+    # --- CLI fallback ---
     if classification.verdict in ("STALE", "NEW_COVERAGE_NEEDED"):
         if not classification.proposed_patch.strip():
             console.print(

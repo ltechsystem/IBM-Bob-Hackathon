@@ -30,6 +30,9 @@ from __future__ import annotations
 import os
 import time
 import argparse
+import json as _json
+import urllib.request
+import urllib.error
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
@@ -61,6 +64,61 @@ def _poll_interval() -> float:
 
 def _is_stub() -> bool:
     return os.environ.get("IBMI_STUB", "false").strip().lower() in ("1", "true", "yes")
+
+
+def _api_base() -> str:
+    return os.environ.get("SENTINEL_API_URL", "http://localhost:8000").rstrip("/")
+
+
+def _post_event(
+    event_type: str,
+    lib: str,
+    srcpf: str,
+    member: str,
+    message: str = "",
+    *,
+    diff: str | None = None,
+    test_output: str | None = None,
+    tests_run: int | None = None,
+    tests_failed: int | None = None,
+    test_name: str | None = None,
+) -> None:
+    """
+    POST a lifecycle event to the FastAPI /sentinel/event endpoint so the
+    React frontend can display it in real time.
+
+    Silently ignores any connection/timeout error — if the API is not running
+    the watcher continues in CLI-only mode.
+    """
+    payload: dict = {
+        "event_type": event_type,
+        "lib": lib,
+        "srcpf": srcpf,
+        "member": member,
+        "message": message,
+    }
+    if diff is not None:
+        payload["diff"] = diff
+    if test_output is not None:
+        payload["test_output"] = test_output
+    if tests_run is not None:
+        payload["tests_run"] = tests_run
+    if tests_failed is not None:
+        payload["tests_failed"] = tests_failed
+    if test_name is not None:
+        payload["test_name"] = test_name
+
+    try:
+        data = _json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{_api_base()}/sentinel/event",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=3)
+    except Exception:
+        pass  # API absent — CLI-only mode, no action needed
 
 
 # ---------------------------------------------------------------------------
@@ -229,6 +287,12 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
         )
     )
 
+    # Signal frontend that the watcher is running
+    _post_event(
+        "WATCHER_STARTED", lib, srcpf, mbr,
+        message=f"Watching {lib}/{srcpf}/{mbr}  poll_interval={interval}s",
+    )
+
     # Seed snapshot on first run if member not yet known
     try:
         seed_snapshot(lib, srcpf, mbr)
@@ -245,6 +309,12 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
             for event in events:
                 _print_event(event)
 
+                # Notify frontend a compile was detected
+                _post_event(
+                    "COMPILE_DETECTED", lib, srcpf, mbr,
+                    message=f"Compile detected ({event.message_id})",
+                )
+
                 # 1. Diff
                 result = diff_member(lib, srcpf, mbr)
                 _print_diff_summary(result)
@@ -253,12 +323,23 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                 if not result.has_changes:
                     continue
 
+                # Notify frontend of the diff
+                _post_event(
+                    "DIFF_READY", lib, srcpf, mbr,
+                    message=f"{result.changed_lines} line(s) changed",
+                    diff=result.unified_diff,
+                )
+
                 # 2. Coverage — before
                 suite = test_suite_name(result.mbr)
                 coverage_before = get_coverage(result.lib, suite)
 
                 # 3. Run tests
                 console.print(f"[dim]  Running test suite {suite}...[/dim]")
+                _post_event(
+                    "TESTS_RUNNING", lib, srcpf, mbr,
+                    message=f"Running test suite {suite}",
+                )
                 raw = run_tests(result.lib, suite)
                 summary = parse_summary(raw)
                 failures = parse_output(raw, suite)
@@ -269,8 +350,18 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
 
                 if fail_cnt == 0:
                     console.print(f"[green]  All {total} test(s) passed.[/green]")
+                    _post_event(
+                        "TESTS_PASSED", lib, srcpf, mbr,
+                        message=f"All {total} test(s) passed",
+                        tests_run=total,
+                        tests_failed=0,
+                    )
                     commit_snapshot(result)
                     console.print("[dim]  Snapshot updated.[/dim]")
+                    _post_event(
+                        "SNAPSHOT_UPDATED", lib, srcpf, mbr,
+                        message="Snapshot updated to new passing state",
+                    )
                 else:
                     console.print(
                         Panel(
@@ -281,6 +372,12 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                             border_style="red",
                         )
                     )
+                    _post_event(
+                        "TESTS_FAILED", lib, srcpf, mbr,
+                        message=f"{fail_cnt} failure(s) in {suite}  ({passed}/{total} passed)",
+                        tests_run=total,
+                        tests_failed=fail_cnt,
+                    )
 
                     # Load the last-known-good test snapshot so Bob has context
                     last_good_test = load_snapshot(result.lib, result.srcpf, suite) or ""
@@ -290,6 +387,11 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                         console.print(
                             f"[dim]  Classifying failure: {failure.procedure or failure.summary}...[/dim]"
                         )
+                        _post_event(
+                            "CLASSIFYING", lib, srcpf, mbr,
+                            message=f"Classifying failure: {failure.procedure or failure.summary}",
+                            test_name=failure.procedure,
+                        )
                         try:
                             classification = classify(
                                 result.unified_diff,
@@ -298,18 +400,31 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                             )
                         except Exception as exc:
                             console.print(f"[red]  Classifier error: {exc}[/red]")
+                            _post_event(
+                                "WATCHER_ERROR", lib, srcpf, mbr,
+                                message=f"Classifier error: {exc}",
+                                test_name=failure.procedure,
+                            )
                             continue
 
-                        present_proposal(classification, result.mbr)
+                        _post_event(
+                            "CLASSIFICATION_READY", lib, srcpf, mbr,
+                            message=f"Verdict: {classification.verdict}  confidence: {classification.confidence:.0%}",
+                            test_name=failure.procedure,
+                        )
+
+                        present_proposal(classification, result.mbr, test_name=failure.procedure)
 
                 # 4. Coverage — after, print delta
                 _print_coverage_delta(coverage_before, get_coverage(result.lib, suite, after=True))
 
         except KeyboardInterrupt:
             console.print("\n[dim]Sentinel stopped.[/dim]")
+            _post_event("WATCHER_STOPPED", lib, srcpf, mbr, message="Watcher stopped by user")
             break
         except Exception as exc:
             console.print(f"[red]  Watcher error: {exc}[/red]")
+            _post_event("WATCHER_ERROR", lib, srcpf, mbr, message=str(exc))
 
         if once:
             if last_result is not None:

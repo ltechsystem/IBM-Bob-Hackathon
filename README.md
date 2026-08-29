@@ -69,6 +69,19 @@ Always run this checklist:
 
 ---
 
+## 📁 Project Layout
+
+| Path | Purpose |
+|---|---|
+| `sentinel/` | Python watcher + classifier agent (IBM i connection, diff analysis, Bob integration) |
+| `sentinel/skill/` | Bob reasoning specification (`SKILL.md`) for test failure classification |
+| `api/` | FastAPI evidence broker and classification results store |
+| `api/tests/` | API test suite (pytest + httpx) |
+| `demo/` | Sample RPG source files and test fixtures |
+| `scripts/` | Development utilities (smoke tests, connection checks) |
+
+---
+
 ## 🤖 Sentinel — Continuous Test Maintenance for IBM i RPG
 
 Sentinel is a Python agent that watches IBM i source members, runs RPGUnit tests after each compile, and uses watsonx.ai (Bob) to classify failures as stale tests, genuine regressions, or gaps in coverage. See [`sentinel-plan.md`](sentinel-plan.md) for the full architecture.

@@ -1,0 +1,17 @@
+{
+  "_scenario": "Off-by-one error introduced in discount tier boundary check. The test is correct. This is a REGRESSION.",
+  "file": "CUSTOMER.RPGLE",
+  "procedure": "calculateDiscount",
+  "test_name": "test_discount_tier_boundary",
+  "diff": "--- a/CUSTOMER.RPGLE\n+++ b/CUSTOMER.RPGLE\n@@ -55,7 +55,7 @@ P calculateDiscount  B\n        if orderTotal >= 500;\n-         discount = orderTotal * 0.15;\n+         discount = orderTotal * 0.15;\n        elseif orderTotal > 100;\n-         discount = orderTotal * 0.10;\n+         discount = orderTotal * 0.10;\n        elseif orderTotal >= 100;\n-         discount = orderTotal * 0.05;\n+         discount = orderTotal * 0.05;\n        else;\n-         discount = *zero;\n+         discount = orderTotal * 0.05;  // BUG: applied discount to sub-threshold orders\n        endif;\n",
+  "last_passing_code": "P calculateDiscount  B\n  D calculateDiscount  PI             8P 2\n  D   custType                        1A   const\n  D   orderTotal                      8P 2 const\n  D   discount                        8P 2\n   /free\n     if orderTotal >= 500;\n       discount = orderTotal * 0.15;\n     elseif orderTotal > 100;\n       discount = orderTotal * 0.10;\n     elseif orderTotal >= 100;\n       discount = orderTotal * 0.05;\n     else;\n       discount = *zero;\n     endif;\n     return discount;\n   /end-free\nP calculateDiscount  E",
+  "last_passing_test": "dcl-proc test_discount_tier_boundary;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('STD': 50);  // below threshold\n  iEqual(0: result);  // should be zero\nend-proc;",
+  "test_source": "dcl-proc test_discount_tier_boundary;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('STD': 50);  // below threshold\n  iEqual(0: result);  // should be zero\nend-proc;",
+  "expected": "0.00",
+  "actual": "2.50",
+  "assertion_output": "ASSERTION FAILED in test_discount_tier_boundary\n  iEqual: expected <0.00> but was <2.50>\n  Source: CUSTOMER_T.RPGLE line 22",
+  "developer_intent": null,
+  "coverage_before": 68.4,
+  "tests_passing": 11,
+  "tests_failing": 2
+}

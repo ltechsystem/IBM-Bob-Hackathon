@@ -1,0 +1,17 @@
+{
+  "_scenario": "VIP discount intentionally raised from 10% to 20%. The test still asserts the old value. This is a STALE_TEST.",
+  "file": "CUSTOMER.RPGLE",
+  "procedure": "calculateDiscount",
+  "test_name": "test_customer_discount",
+  "diff": "--- a/CUSTOMER.RPGLE\n+++ b/CUSTOMER.RPGLE\n@@ -42,7 +42,7 @@ P calculateDiscount  B\n      /free\n        if custType = 'VIP';\n-         discount = orderTotal * 0.10;\n+         discount = orderTotal * 0.20;\n        else;\n           discount = orderTotal * 0.05;\n        endif;\n",
+  "last_passing_code": "P calculateDiscount  B\n  D calculateDiscount  PI             8P 2\n  D   custType                        1A   const\n  D   orderTotal                      8P 2 const\n  D   discount                        8P 2\n   /free\n     if custType = 'VIP';\n       discount = orderTotal * 0.10;\n     else;\n       discount = orderTotal * 0.05;\n     endif;\n     return discount;\n   /end-free\nP calculateDiscount  E",
+  "last_passing_test": "dcl-proc test_customer_discount;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('VIP': 1000);\n  iEqual(90: result);  // 10% of 1000 = 100, minus base = 90 net\nend-proc;",
+  "test_source": "dcl-proc test_customer_discount;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('VIP': 1000);\n  iEqual(90: result);  // still asserting old 10% value\nend-proc;",
+  "expected": "90.00",
+  "actual": "80.00",
+  "assertion_output": "ASSERTION FAILED in test_customer_discount\n  iEqual: expected <90.00> but was <80.00>\n  Source: CUSTOMER_T.RPGLE line 14",
+  "developer_intent": "Increase VIP discount from 10% to 20% to match new loyalty programme pricing.",
+  "coverage_before": 68.4,
+  "tests_passing": 12,
+  "tests_failing": 1
+}

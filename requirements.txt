@@ -1,5 +1,5 @@
 # ============================================
-# Sentinel — Python dependencies
+# Sentinel + Bob Debug Agent — Python dependencies
 # ============================================
 # Install with:
 #   pip install -r requirements.txt
@@ -20,9 +20,24 @@ watchdog>=4.0.0
 rich>=13.0.0
 
 # ============================================
-# NOT included here — install separately:
+# Bob Debug Agent — Web API backend
 # ============================================
-# Bob Shell CLI — the AI reasoning engine
-#   Download and install from: bob.ibm.com
-#   Required for real classification (SENTINEL_BOB_STUB=false)
-#   Auth: set BOBSHELL_API_KEY in .env
+
+# HTTP API framework
+fastapi>=0.111.0
+
+# ASGI server
+uvicorn[standard]>=0.29.0
+
+# Data validation / serialisation
+pydantic>=2.7.0
+
+# watsonx.ai IBM Granite inference
+# (optional — set BACKEND_STUB=true to skip; required for live AI inference)
+ibm-watsonx-ai>=1.0.0
+
+# ============================================
+# Dev / test
+# ============================================
+# FastAPI test client (requires httpx)
+httpx>=0.27.0

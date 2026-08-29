@@ -1,0 +1,17 @@
+{
+  "_scenario": "Discount logic refactored into a helper table lookup. Intent is unclear; the test may or may not be valid. This is UNCERTAIN.",
+  "file": "CUSTOMER.RPGLE",
+  "procedure": "calculateDiscount",
+  "test_name": "test_customer_discount_standard",
+  "diff": "--- a/CUSTOMER.RPGLE\n+++ b/CUSTOMER.RPGLE\n@@ -40,14 +40,10 @@ P calculateDiscount  B\n      /free\n-       if custType = 'VIP';\n-         discount = orderTotal * 0.20;\n-       elseif custType = 'CORP';\n-         discount = orderTotal * 0.12;\n-       else;\n-         discount = orderTotal * 0.05;\n-       endif;\n+       // Replaced inline logic with rate table lookup\n+       discountRate = getDiscountRate(custType: orderTier);\n+       discount = orderTotal * discountRate;\n",
+  "last_passing_code": "P calculateDiscount  B\n  D calculateDiscount  PI             8P 2\n  D   custType                        1A   const\n  D   orderTotal                      8P 2 const\n  D   discount                        8P 2\n   /free\n     if custType = 'VIP';\n       discount = orderTotal * 0.20;\n     elseif custType = 'CORP';\n       discount = orderTotal * 0.12;\n     else;\n       discount = orderTotal * 0.05;\n     endif;\n     return discount;\n   /end-free\nP calculateDiscount  E",
+  "last_passing_test": "dcl-proc test_customer_discount_standard;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('STD': 1000);\n  iEqual(50: result);  // 5% of 1000\nend-proc;",
+  "test_source": "dcl-proc test_customer_discount_standard;\n  dcl-s result  packed(8:2);\n  result = calculateDiscount('STD': 1000);\n  iEqual(50: result);  // 5% of 1000\nend-proc;",
+  "expected": "50.00",
+  "actual": "45.00",
+  "assertion_output": "ASSERTION FAILED in test_customer_discount_standard\n  iEqual: expected <50.00> but was <45.00>\n  Source: CUSTOMER_T.RPGLE line 31",
+  "developer_intent": "Refactored discount logic to use centralised rate table for maintainability.",
+  "coverage_before": 68.4,
+  "tests_passing": 12,
+  "tests_failing": 1
+}

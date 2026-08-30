@@ -1,7 +1,7 @@
 // Stage 1: Incident Intake — parses raw incident into a structured brief
 import { StageShell } from './shared'
 import { StatusIcon } from '../icons/StatusIcon'
-import type { IncidentBrief } from '../../mockdata/incident'
+import type { IncidentBrief } from '../../api/types'
 
 const SEVERITY_STYLE: Record<IncidentBrief['severity'], string> = {
   P1: 'border-red-500/40 bg-red-500/10 text-red-400',

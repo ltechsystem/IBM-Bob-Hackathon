@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import FixRecommenderStage from '../components/pipelines/FixRecommenderStage'
-import type { DiffHunk } from '../mockdata/incident'
+import type { DiffHunk } from '../api/types'
 
 const hunk: DiffHunk = {
   file: 'app/main.py',

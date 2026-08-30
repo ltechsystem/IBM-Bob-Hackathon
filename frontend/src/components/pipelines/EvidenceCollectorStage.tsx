@@ -1,6 +1,6 @@
 // Stage 2: Evidence Collector — lists relevant files found by the agent
 import { StageShell } from './shared'
-import type { EvidenceFile } from '../../mockdata/incident'
+import type { EvidenceFile } from '../../api/types'
 
 const REL_STYLE: Record<EvidenceFile['relevance'], string> = {
   HIGH:   'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',

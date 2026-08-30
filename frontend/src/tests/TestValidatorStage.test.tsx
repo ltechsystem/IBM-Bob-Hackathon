@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import TestValidatorStage from '../components/pipelines/TestValidatorStage'
-import type { TestResult } from '../mockdata/incident'
+import type { TestResult } from '../api/types'
 
 const allPassed: TestResult[] = [
   { name: 'test_get_existing_user',    status: 'PASSED' },

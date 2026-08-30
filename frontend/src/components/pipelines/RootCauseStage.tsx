@@ -1,7 +1,7 @@
 // Stage 4: Root Cause Analyzer
 import { StageShell, ConfidenceBadge } from './shared'
 import { StatusIcon } from '../icons/StatusIcon'
-import type { RootCause } from '../../mockdata/incident'
+import type { RootCause } from '../../api/types'
 
 interface Props { rootCause: RootCause }
 

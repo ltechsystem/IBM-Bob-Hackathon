@@ -1,7 +1,7 @@
 // Stage 7: Test Validator — runs pytest, shows results
 import { StageShell } from './shared'
 import { StatusIcon } from '../icons/StatusIcon'
-import type { TestResult } from '../../mockdata/incident'
+import type { TestResult } from '../../api/types'
 
 interface Props { results: TestResult[] }
 

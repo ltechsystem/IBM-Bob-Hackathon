@@ -1,6 +1,6 @@
 // Stage 5: Fix Recommender — shows before/after diff
 import { StageShell } from './shared'
-import type { DiffHunk } from '../../mockdata/incident'
+import type { DiffHunk } from '../../api/types'
 
 interface Props { hunk: DiffHunk }
 

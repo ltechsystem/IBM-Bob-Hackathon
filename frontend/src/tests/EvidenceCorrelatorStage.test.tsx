@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import EvidenceCorrelatorStage from '../components/pipelines/EvidenceCorrelatorStage'
-import type { SubagentFinding } from '../mockdata/incident'
+import type { SubagentFinding } from '../api/types'
 
 const findings: SubagentFinding[] = [
   { agent: 'Subagent A', focus: 'Logs',  finding: 'AttributeError on line 13', confidence: 'HIGH' },

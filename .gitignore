@@ -121,3 +121,6 @@ build/
 
 .sentinel_store/
 proposals/
+
+#backend database
+.backend_db/

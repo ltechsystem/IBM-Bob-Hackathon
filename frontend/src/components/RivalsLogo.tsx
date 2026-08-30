@@ -1,14 +1,32 @@
 /**
  * RivalsLogo — geometric 'R' emblem with networking nodes and </> code bracket.
- * Gradient: cyan (#06b6d4) → indigo (#6366f1).
- * Transparent background, perfectly balanced at any size.
+ *
+ * Design spec:
+ *   • Solid block 'R' (stem + top bar + mid bar + bowl + diagonal leg)
+ *   • Networking node cluster dissolving out of the right side of the R
+ *   • </> code bracket rendered inside the R bowl's negative space
+ *   • Gradient: cyan #06b6d4 → violet #818cf8 → indigo #6366f1 (diagonal)
+ *   • Transparent background — works on any surface
+ *
+ * Each rendered instance uses a unique gradient ID derived from an
+ * incrementing counter so multiple logos on the same page never clash.
  */
+
+let _idCounter = 0
+
 export interface RivalsLogoProps {
+  /** Pixel size of the square bounding box. Default: 48 */
   size?: number
   className?: string
 }
 
 export default function RivalsLogo({ size = 48, className = '' }: RivalsLogoProps) {
+  // Stable unique prefix per component instance (assigned once at render)
+  const id = `rl${++_idCounter}`
+
+  const grad    = `url(#${id}-g)`
+  const gradLt  = `url(#${id}-gl)`
+
   return (
     <svg
       width={size}
@@ -16,108 +34,94 @@ export default function RivalsLogo({ size = 48, className = '' }: RivalsLogoProp
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Rivals logo"
+      aria-label="Rivals"
+      role="img"
       className={className}
     >
       <defs>
-        {/* Primary cyan → indigo gradient (left to right) */}
-        <linearGradient id="rl-grad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        {/* ── Primary gradient: cyan → violet → indigo ── */}
+        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
           <stop offset="0%"   stopColor="#06b6d4" />
-          <stop offset="55%"  stopColor="#818cf8" />
+          <stop offset="52%"  stopColor="#818cf8" />
           <stop offset="100%" stopColor="#6366f1" />
         </linearGradient>
 
-        {/* Slightly lighter variant for node rings */}
-        <linearGradient id="rl-grad-light" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        {/* ── Light variant for secondary elements ── */}
+        <linearGradient id={`${id}-gl`} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
           <stop offset="0%"   stopColor="#67e8f9" />
-          <stop offset="100%" stopColor="#a5b4fc" />
+          <stop offset="100%" stopColor="#c7d2fe" />
         </linearGradient>
-
-        {/* Clip path that defines the overall emblem square */}
-        <clipPath id="rl-clip">
-          <rect x="0" y="0" width="100" height="100" rx="18" />
-        </clipPath>
       </defs>
 
-      {/* ── Background pill (very subtle, semi-transparent) ───────────── */}
-      <rect x="0" y="0" width="100" height="100" rx="18"
-            fill="url(#rl-grad)" fillOpacity="0.08" />
+      {/* ── Subtle background tile ────────────────────────────────────── */}
+      <rect width="100" height="100" rx="22" fill={grad} fillOpacity="0.09" />
 
-      {/*
-        ── Geometric R body ─────────────────────────────────────────────
-        Built from three solid rectangles:
-          1. Vertical stem (left side)
-          2. Top horizontal bar
-          3. Mid horizontal bar
-        The diagonal leg is a rotated rect.
-        All filled with the gradient.
-      */}
+      {/* ── Geometric R ──────────────────────────────────────────────── */}
 
-      {/* Stem — left vertical bar */}
-      <rect x="14" y="12" width="14" height="76" rx="3" fill="url(#rl-grad)" />
+      {/* Vertical stem */}
+      <rect x="14" y="12" width="13" height="76" rx="3" fill={grad} />
 
-      {/* Top bar — horizontal crossbar of R */}
-      <rect x="14" y="12" width="42" height="13" rx="3" fill="url(#rl-grad)" />
+      {/* Top bar */}
+      <rect x="14" y="12" width="44" height="13" rx="3" fill={grad} />
 
-      {/* Midbar — second horizontal crossbar of R */}
-      <rect x="14" y="43" width="38" height="12" rx="3" fill="url(#rl-grad)" />
+      {/* Mid bar */}
+      <rect x="14" y="43" width="40" height="12" rx="3" fill={grad} />
 
-      {/* Bowl curve — right arc of R rendered as a filled rounded rect */}
-      <rect x="42" y="12" width="14" height="44" rx="7" fill="url(#rl-grad)" />
+      {/* Bowl — right vertical of the R counter */}
+      <rect x="44" y="12" width="13" height="44" rx="6.5" fill={grad} />
 
-      {/* Diagonal leg — the descending right stroke of R */}
+      {/* Diagonal leg */}
       <rect
-        x="43" y="52" width="13" height="42" rx="3"
-        fill="url(#rl-grad)"
-        transform="rotate(-22 43 52)"
+        x="44" y="53"
+        width="13" height="40"
+        rx="3"
+        fill={grad}
+        transform="rotate(-21 44 53)"
       />
 
-      {/*
-        ── </> code bracket in the R negative space ─────────────────────
-        Sits inside the bowl (upper-right counter of the R).
-        Rendered as thin strokes using the light gradient.
-      */}
-      <g stroke="url(#rl-grad-light)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none">
+      {/* ── </> bracket inside the R bowl negative space ─────────────── */}
+      <g
+        stroke={gradLt}
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
         {/* < */}
-        <polyline points="29,28  24,33  29,38" />
+        <polyline points="28,27 23,33 28,39" />
         {/* / */}
-        <line x1="33" y1="39" x2="38" y2="26" />
+        <line x1="33" y1="40" x2="39" y2="26" />
         {/* > */}
-        <polyline points="41,28  46,33  41,38" />
+        <polyline points="43,27 48,33 43,39" />
       </g>
 
-      {/*
-        ── Networking node structure (right side) ────────────────────────
-        Three nodes connected by thin lines, emanating from the R diagonal,
-        giving the impression the letterform "dissolves" into a network.
-      */}
+      {/* ── Networking node structure ─────────────────────────────────── */}
 
-      {/* Edge lines first (behind nodes) */}
-      <g stroke="url(#rl-grad)" strokeWidth="1.4" strokeLinecap="round" opacity="0.7">
-        {/* centre hub → top-right node */}
-        <line x1="72" y1="60" x2="86" y2="44" />
-        {/* centre hub → bottom-right node */}
-        <line x1="72" y1="60" x2="88" y2="74" />
-        {/* centre hub → mid-right node */}
-        <line x1="72" y1="60" x2="90" y2="60" />
-        {/* leg tip → centre hub */}
-        <line x1="60" y1="76" x2="72" y2="60" />
+      {/* Edge lines (drawn behind nodes) */}
+      <g stroke={grad} strokeWidth="1.5" strokeLinecap="round" opacity="0.65">
+        <line x1="72" y1="58" x2="87" y2="43" />
+        <line x1="72" y1="58" x2="89" y2="73" />
+        <line x1="72" y1="58" x2="91" y2="58" />
+        <line x1="61" y1="75" x2="72" y2="58" />
       </g>
 
-      {/* Centre hub node */}
-      <circle cx="72" cy="60" r="5" fill="url(#rl-grad)" />
+      {/* Hub — centre node */}
+      <circle cx="72" cy="58" r="5.5" fill={grad} />
 
-      {/* Outer nodes — filled ring style */}
-      <circle cx="86" cy="44" r="3.5" fill="url(#rl-grad-light)" />
-      <circle cx="88" cy="74" r="3.5" fill="url(#rl-grad-light)" />
-      <circle cx="90" cy="60" r="2.8" fill="url(#rl-grad-light)" />
+      {/* Outer satellite nodes */}
+      <circle cx="87" cy="43" r="3.8" fill={gradLt} />
+      <circle cx="89" cy="73" r="3.8" fill={gradLt} />
+      <circle cx="91" cy="58" r="3.0" fill={gradLt} />
 
-      {/* Leg-tip node */}
-      <circle cx="60" cy="76" r="3" fill="url(#rl-grad)" opacity="0.6" />
+      {/* Leg-tip node — transition from letterform to network */}
+      <circle cx="61" cy="75" r="3.2" fill={grad} opacity="0.55" />
 
-      {/* ── Outer border ring (very subtle) ──────────────────────────── */}
-      <rect x="1" y="1" width="98" height="98" rx="18"
-            stroke="url(#rl-grad)" strokeWidth="1.5" strokeOpacity="0.25" fill="none" />
+      {/* ── Outer border ring ─────────────────────────────────────────── */}
+      <rect
+        x="1.5" y="1.5" width="97" height="97" rx="21"
+        stroke={grad} strokeWidth="1.5" strokeOpacity="0.22"
+        fill="none"
+      />
     </svg>
   )
 }

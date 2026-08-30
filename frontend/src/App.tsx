@@ -22,7 +22,7 @@ import TestValidatorStage from './components/pipelines/TestValidatorStage'
 import ReportGeneratorStage from './components/pipelines/ReportGeneratorStage'
 import type { Step } from './components/pipelines/stepTracker'
 import type { AgentStatus } from './components/pipelines/shared'
-import RivalsLogo from './components/RivalsLogo'
+import { BobAvatar } from './components/icons/StatusIcon'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,19 +128,27 @@ export default function App() {
       <header className="mx-auto mb-8 max-w-5xl">
         {/* Top brand bar */}
         <div className="flex items-center gap-3 mb-4">
-          <RivalsLogo size={48} />
+          {/* Compact logo from public/logos/ — no CLS: fixed dimensions */}
+          <img
+            src="/logos/logo-compact.svg"
+            alt="Victim Application"
+            width={48}
+            height={48}
+            className="h-12 w-12 shrink-0"
+            style={{ display: 'block' }}
+          />
           <div>
             <div className="flex items-center gap-2">
               <span
                 className="font-mono text-xl font-bold tracking-tight"
                 style={{
-                  background: 'linear-gradient(90deg, #06b6d4 0%, #818cf8 55%, #6366f1 100%)',
+                  background: 'linear-gradient(90deg, #00f2fe 0%, #818cf8 55%, #4facfe 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                 }}
               >
-                Rivals
+                Victim Application
               </span>
               <span className="font-mono text-xs text-zinc-500 uppercase tracking-widest pt-0.5">
                 · Debug Agent
@@ -154,11 +162,14 @@ export default function App() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Live indicator */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            LIVE
-          </span>
+          {/* Bob avatar + live indicator */}
+          <div className="flex items-center gap-2">
+            <BobAvatar size="h-8 w-8" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              LIVE
+            </span>
+          </div>
         </div>
 
         {/* Divider with gradient */}

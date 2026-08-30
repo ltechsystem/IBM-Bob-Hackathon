@@ -1,5 +1,6 @@
 // Stage 8: Report Generator — final incident report summary
 import { StageShell, ConfidenceBadge } from './shared'
+import { StatusIcon } from '../icons/StatusIcon'
 import type { IncidentBrief, RootCause } from '../../mockdata/incident'
 
 interface Props { brief: IncidentBrief; rootCause: RootCause }
@@ -12,6 +13,22 @@ export default function ReportGeneratorStage({ brief, rootCause }: Props) {
       title="Incident Report"
       description="incident-report.md — generated"
     >
+      {/* ── Hero banner: primary logo (Placement Matrix: Incident Brief Header) ── */}
+      <div className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/60 px-4 py-3">
+        <img
+          src="/logos/logo-primary.svg"
+          alt="Victim Application — AI-Powered Debug Agent"
+          width={320}
+          height={68}
+          className="h-12 w-auto shrink-0"
+          style={{ display: 'block', maxWidth: '100%' }}
+        />
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusIcon kind="success" size="h-4 w-4" decorative />
+          <span className="font-mono text-xs font-semibold text-emerald-400">RESOLVED</span>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 rounded-md border border-zinc-800 bg-zinc-900/50 p-4 text-xs">
         <Row label="Incident"    value={`${brief.id} — ${brief.title}`} />
         <Row label="Service"     value={brief.service} />

@@ -19,10 +19,12 @@ same origin in production.  Configured via BACKEND_CORS_ORIGINS env var
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.database import (
     delete_incident,
@@ -59,6 +61,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Static assets — serve the frontend public/ directory at /static
+# ---------------------------------------------------------------------------
+
+_PUBLIC_DIR = Path(__file__).parent.parent / "frontend" / "public"
+if _PUBLIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_PUBLIC_DIR)), name="static")
 
 # ---------------------------------------------------------------------------
 # Startup

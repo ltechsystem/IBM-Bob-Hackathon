@@ -1,6 +1,7 @@
 // Stage 1: Incident Intake — parses raw incident into a structured brief
 import { StageShell } from './shared'
-import type { IncidentBrief } from '../../mockdata/incident'
+import { StatusIcon } from '../icons/StatusIcon'
+import type { IncidentBrief } from '../../api/types'
 
 const SEVERITY_STYLE: Record<IncidentBrief['severity'], string> = {
   P1: 'border-red-500/40 bg-red-500/10 text-red-400',
@@ -30,6 +31,9 @@ export default function IncidentIntakeStage({ brief }: Props) {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {brief.severity === 'P1' && <StatusIcon kind="failure" size="h-3.5 w-3.5" decorative />}
+        {brief.severity === 'P2' && <StatusIcon kind="warning" size="h-3.5 w-3.5" decorative />}
+        {brief.severity === 'P3' && <StatusIcon kind="success" size="h-3.5 w-3.5" decorative />}
         <span className="text-xs text-zinc-600">Severity</span>
         <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-bold ${SEVERITY_STYLE[brief.severity]}`}>
           {brief.severity}

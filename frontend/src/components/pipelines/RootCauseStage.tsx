@@ -1,10 +1,13 @@
 // Stage 4: Root Cause Analyzer
 import { StageShell, ConfidenceBadge } from './shared'
-import type { RootCause } from '../../mockdata/incident'
+import { StatusIcon } from '../icons/StatusIcon'
+import type { RootCause } from '../../api/types'
 
 interface Props { rootCause: RootCause }
 
 export default function RootCauseStage({ rootCause }: Props) {
+  const isLowConfidence = rootCause.confidence === 'LOW' || rootCause.confidence === 'MEDIUM'
+
   return (
     <StageShell
       stageNumber={4}
@@ -30,6 +33,16 @@ export default function RootCauseStage({ rootCause }: Props) {
           <code className="text-amber-400">{rootCause.line}</code>
         </div>
       </div>
+
+      {/* Confidence gate alert — shown when human review is recommended */}
+      {isLowConfidence && (
+        <div className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+          <StatusIcon kind="warning" size="h-4 w-4" />
+          <p className="font-mono text-xs text-amber-300">
+            Confidence gate — human review recommended before applying this fix.
+          </p>
+        </div>
+      )}
     </StageShell>
   )
 }

@@ -1,13 +1,8 @@
 // src/components/pipeline/LogViewerStage.tsx
 import { StageShell } from './shared'
+import type { LogLine } from '../../api/types'
 
-export type LogLevel = 'INFO' | 'WARN' | 'ERROR'
-
-export interface LogLine {
-    time: string
-    level: LogLevel
-    message: string
-}
+export type { LogLine }
 
 export interface LogViewerStageProps {
     logPath: string

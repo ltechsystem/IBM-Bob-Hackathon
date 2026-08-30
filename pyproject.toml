@@ -12,18 +12,26 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "watchdog>=4.0.0",
     "rich>=13.0.0",
-    # Bob Shell (bob CLI) is used for inference — install separately from bob.ibm.com
+    # HTTP client — used by sentinel/proposals.py to POST results to the backend
+    "httpx>=0.27.0",
+    # Web API backend
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.0",
+    # watsonx.ai inference (optional — BACKEND_STUB=true skips it)
+    "ibm-watsonx-ai>=1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-timeout>=2.0.0",
+    "httpx>=0.27.0",   # FastAPI TestClient dependency
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sentinel*"]
+include = ["sentinel*", "backend*"]
 
 [project.scripts]
 sentinel = "sentinel.__main__:main"

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import EvidenceCollectorStage from '../components/pipelines/EvidenceCollectorStage'
-import type { EvidenceFile } from '../mockdata/incident'
+import type { EvidenceFile } from '../api/types'
 
 const files: EvidenceFile[] = [
   { path: 'app/main.py',   relevance: 'HIGH',   reason: 'Route handler' },

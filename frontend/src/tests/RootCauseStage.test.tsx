@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import RootCauseStage from '../components/pipelines/RootCauseStage'
-import type { RootCause } from '../mockdata/incident'
+import type { RootCause } from '../api/types'
 
 const rootCause: RootCause = {
   file: 'app/main.py',

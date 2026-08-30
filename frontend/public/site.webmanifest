@@ -1,0 +1,17 @@
+{
+  "name": "Victim Application",
+  "short_name": "VictimApp",
+  "description": "AI-powered incident debug pipeline",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1d",
+  "theme_color": "#00f2fe",
+  "icons": [
+    {
+      "src": "/logos/logo-compact.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

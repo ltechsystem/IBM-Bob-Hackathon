@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import IncidentIntakeStage from '../components/pipelines/IncidentIntakeStage'
-import type { IncidentBrief } from '../mockdata/incident'
+import type { IncidentBrief } from '../api/types'
 
 const brief: IncidentBrief = {
   id: 'INC-2024-001',

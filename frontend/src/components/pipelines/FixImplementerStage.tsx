@@ -1,10 +1,13 @@
 // Stage 6: Fix Implementer — confirms the diff was applied
 import { StageShell } from './shared'
-import type { DiffHunk } from '../../mockdata/incident'
+import type { DiffHunk } from '../../api/types'
 
 interface Props { hunk: DiffHunk }
 
 export default function FixImplementerStage({ hunk }: Props) {
+  // Lines added in "after" that are not present in "before"
+  const addedLines = hunk.after.slice(hunk.before.length - 1)
+
   return (
     <StageShell
       stageNumber={6}
@@ -19,13 +22,14 @@ export default function FixImplementerStage({ hunk }: Props) {
             Patch applied successfully
           </p>
           <p className="mt-0.5 font-mono text-xs text-zinc-500">
-            +2 lines added to <code className="text-amber-400">{hunk.file}</code>
+            +{addedLines.length} line{addedLines.length !== 1 ? 's' : ''} added to{' '}
+            <code className="text-amber-400">{hunk.file}</code>
           </p>
         </div>
       </div>
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3 font-mono text-xs">
         <p className="mb-2 text-[10px] uppercase tracking-wider text-zinc-600">Changed lines</p>
-        {['    if user is None:', '        raise HTTPException(status_code=404, detail="User not found")'].map((line, i) => (
+        {addedLines.map((line, i) => (
           <div key={i} className="text-emerald-400">
             <span className="mr-2 select-none text-zinc-700">+ </span>{line}
           </div>

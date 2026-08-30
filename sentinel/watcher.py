@@ -300,7 +300,7 @@ def watch(lib: str, srcpf: str, mbr: str, once: bool = False) -> DiffResult | No
                             console.print(f"[red]  Classifier error: {exc}[/red]")
                             continue
 
-                        present_proposal(classification, result.mbr)
+                        present_proposal(classification, result.mbr, lib=result.lib, srcpf=result.srcpf)
 
                 # 4. Coverage — after, print delta
                 _print_coverage_delta(coverage_before, get_coverage(result.lib, suite, after=True))

@@ -1,6 +1,6 @@
 // Stage 3: Evidence Correlator — merges findings from 4 parallel subagents
 import { StageShell, ConfidenceBadge, StatusBadge } from './shared'
-import type { SubagentFinding } from '../../mockdata/incident'
+import type { SubagentFinding } from '../../api/types'
 
 interface Props { findings: SubagentFinding[] }
 

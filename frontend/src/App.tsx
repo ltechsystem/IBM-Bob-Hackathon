@@ -22,6 +22,7 @@ import TestValidatorStage from './components/pipelines/TestValidatorStage'
 import ReportGeneratorStage from './components/pipelines/ReportGeneratorStage'
 import type { Step } from './components/pipelines/stepTracker'
 import type { AgentStatus } from './components/pipelines/shared'
+import RivalsLogo from './components/RivalsLogo'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -123,18 +124,62 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6 font-mono text-zinc-100">
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="mx-auto mb-8 max-w-5xl">
-        <p className="font-mono text-xs uppercase tracking-widest text-zinc-600">
-          Bob Debug Agent · Python + FastAPI + SQLite
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-zinc-100">
-          Incident Pipeline
-          <span className="ml-3 rounded border border-red-500/40 bg-red-500/10 px-2 py-0.5 font-mono text-sm text-red-400">
+        {/* Top brand bar */}
+        <div className="flex items-center gap-3 mb-4">
+          <RivalsLogo size={48} />
+          <div>
+            <div className="flex items-center gap-2">
+              <span
+                className="font-mono text-xl font-bold tracking-tight"
+                style={{
+                  background: 'linear-gradient(90deg, #06b6d4 0%, #818cf8 55%, #6366f1 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Rivals
+              </span>
+              <span className="font-mono text-xs text-zinc-500 uppercase tracking-widest pt-0.5">
+                · Debug Agent
+              </span>
+            </div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-600 mt-0.5">
+              Python · FastAPI · SQLite · IBM Granite
+            </p>
+          </div>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Live indicator */}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+
+        {/* Divider with gradient */}
+        <div
+          className="h-px w-full mb-4 rounded"
+          style={{ background: 'linear-gradient(90deg, #06b6d4 0%, #6366f1 60%, transparent 100%)', opacity: 0.3 }}
+        />
+
+        {/* Incident title + badge */}
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-mono text-lg font-bold text-zinc-100">
+            Incident Pipeline
+          </h1>
+          <span className="rounded border border-red-500/40 bg-red-500/10 px-2 py-0.5 font-mono text-sm text-red-400">
             {INCIDENT_ID}
           </span>
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+          <span className="rounded border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 font-mono text-xs text-zinc-400">
+            P1
+          </span>
+        </div>
+        <p className="mt-1 font-mono text-sm text-zinc-500">
           GET /users/&#123;user_id&#125; → AttributeError: 'NoneType' object has no attribute 'name'
         </p>
       </header>

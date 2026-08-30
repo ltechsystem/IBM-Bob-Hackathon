@@ -30,10 +30,12 @@ from backend.database import (
     delete_incident,
     init_db,
     list_incidents,
+    list_sentinel_classifications,
     load_incident,
     save_incident,
+    save_sentinel_classification,
 )
-from backend.models import PipelineResult, RunIncidentRequest
+from backend.models import PipelineResult, RunIncidentRequest, SentinelClassification
 from backend.pipeline import run_pipeline
 
 # ---------------------------------------------------------------------------
@@ -126,3 +128,30 @@ def remove_incident(incident_id: str) -> Dict[str, Any]:
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
     return {"deleted": True, "id": incident_id}
+
+
+# ---------------------------------------------------------------------------
+# Sentinel routes
+# ---------------------------------------------------------------------------
+
+@app.post("/api/sentinel/results", tags=["sentinel"])
+def post_sentinel_result(result: SentinelClassification) -> Dict[str, Any]:
+    """
+    Accept a classification result from Sentinel (posted by sentinel/proposals.py
+    after the developer reviews it in the terminal).
+
+    Sets received_at automatically if not provided by the caller.
+    """
+    from datetime import datetime, timezone
+    if not result.received_at:
+        result = result.model_copy(
+            update={"received_at": datetime.now(timezone.utc).isoformat()}
+        )
+    db_id = save_sentinel_classification(result)
+    return {"status": "ok", "id": db_id}
+
+
+@app.get("/api/sentinel/results", tags=["sentinel"])
+def get_sentinel_results() -> List[Dict[str, Any]]:
+    """Return all stored Sentinel classification results, newest first."""
+    return list_sentinel_classifications()

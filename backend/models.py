@@ -108,6 +108,38 @@ class PipelineResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Sentinel classification result (posted by sentinel/proposals.py)
+# ---------------------------------------------------------------------------
+
+class SentinelClassification(BaseModel):
+    """
+    A single RPGUnit test failure classification produced by Sentinel + Bob.
+
+    Posted to POST /api/sentinel/results by sentinel/proposals.py after
+    the developer has reviewed the proposal in the terminal.
+    """
+    # IBM i identifiers
+    lib: str
+    srcpf: str
+    mbr: str
+    test_name: str
+
+    # Bob's verdict
+    verdict: Literal["STALE", "REGRESSION", "NEW_COVERAGE_NEEDED", "UNCERTAIN"]
+    confidence: float
+    rationale: str
+
+    # Optional unified diff patch (only present for STALE / NEW_COVERAGE_NEEDED)
+    proposed_patch: Optional[str] = None
+
+    # Developer's terminal decision: accepted | rejected | edited | regression | skipped | no_patch
+    developer_action: Optional[str] = None
+
+    # ISO-8601 timestamp set by the backend on receipt
+    received_at: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
 # Request body for POST /incidents/run
 # ---------------------------------------------------------------------------
 

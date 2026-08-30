@@ -63,3 +63,27 @@ export interface PipelineResult {
   diffHunk: DiffHunk
   testResults: TestResult[]
 }
+
+// ---------------------------------------------------------------------------
+// Sentinel classification (IBM i RPG test maintenance)
+// ---------------------------------------------------------------------------
+
+export type SentinelVerdict =
+  | 'STALE'
+  | 'REGRESSION'
+  | 'NEW_COVERAGE_NEEDED'
+  | 'UNCERTAIN'
+
+export interface SentinelClassification {
+  _db_id?: number
+  lib: string
+  srcpf: string
+  mbr: string
+  test_name: string
+  verdict: SentinelVerdict
+  confidence: number
+  rationale: string
+  proposed_patch?: string | null
+  developer_action?: string | null
+  received_at?: string | null
+}

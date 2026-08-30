@@ -8,6 +8,11 @@ incidents
   payload     TEXT  (JSON-encoded PipelineResult)
   created_at  TEXT  (ISO-8601 timestamp)
 
+sentinel_classifications
+  id          INTEGER PRIMARY KEY AUTOINCREMENT
+  payload     TEXT  (JSON-encoded SentinelClassification)
+  received_at TEXT  (ISO-8601 timestamp)
+
 No ORM — plain sqlite3 is sufficient and keeps the dependency surface minimal.
 """
 
@@ -21,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Generator, List, Optional
 
-from backend.models import PipelineResult
+from backend.models import PipelineResult, SentinelClassification
 
 _DB_PATH = Path(os.environ.get("BACKEND_DB_PATH", ".backend_db/incidents.db"))
 
@@ -39,7 +44,7 @@ def _conn() -> Generator[sqlite3.Connection, None, None]:
 
 
 def init_db() -> None:
-    """Create the incidents table if it does not exist."""
+    """Create all tables if they do not exist."""
     with _conn() as con:
         con.execute(
             """
@@ -47,6 +52,15 @@ def init_db() -> None:
                 id         TEXT PRIMARY KEY,
                 payload    TEXT NOT NULL,
                 created_at TEXT NOT NULL
+            )
+            """
+        )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sentinel_classifications (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                payload     TEXT NOT NULL,
+                received_at TEXT NOT NULL
             )
             """
         )
@@ -102,3 +116,31 @@ def delete_incident(incident_id: str) -> bool:
     with _conn() as con:
         cur = con.execute("DELETE FROM incidents WHERE id = ?", (incident_id,))
     return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Sentinel classifications
+# ---------------------------------------------------------------------------
+
+def save_sentinel_classification(result: SentinelClassification) -> int:
+    """Insert a Sentinel classification and return its auto-generated id."""
+    with _conn() as con:
+        cur = con.execute(
+            "INSERT INTO sentinel_classifications (payload, received_at) VALUES (?, ?)",
+            (result.model_dump_json(), result.received_at),
+        )
+    return cur.lastrowid
+
+
+def list_sentinel_classifications() -> List[Dict]:
+    """Return all Sentinel classifications, newest first."""
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT id, payload, received_at FROM sentinel_classifications ORDER BY received_at DESC"
+        ).fetchall()
+    results = []
+    for row in rows:
+        data = json.loads(row["payload"])
+        data["_db_id"] = row["id"]
+        results.append(data)
+    return results

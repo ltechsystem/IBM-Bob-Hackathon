@@ -30,8 +30,11 @@ from __future__ import annotations
 import os
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
+
+import httpx
 
 from rich.console import Console
 from rich.panel import Panel
@@ -41,6 +44,55 @@ from rich.prompt import Prompt
 from rich.rule import Rule
 
 from sentinel.models import Classification
+
+
+# ---------------------------------------------------------------------------
+# Backend notification
+# ---------------------------------------------------------------------------
+
+def _backend_url() -> Optional[str]:
+    """
+    Return the backend base URL for posting Sentinel results, or None if
+    SENTINEL_BACKEND_URL is unset (which silently disables posting).
+
+    Set SENTINEL_BACKEND_URL=http://localhost:8000 in your .env to enable.
+    """
+    return os.environ.get("SENTINEL_BACKEND_URL", "").strip() or None
+
+
+def _post_to_backend(
+    classification: Classification,
+    member: str,
+    lib: str,
+    srcpf: str,
+    developer_action: str,
+) -> None:
+    """
+    POST the classification result to the backend so the React UI can display it.
+    Failures are logged as warnings — they must never crash the terminal flow.
+    """
+    url = _backend_url()
+    if not url:
+        return
+
+    payload = {
+        "lib": lib,
+        "srcpf": srcpf,
+        "mbr": member,
+        "test_name": member,
+        "verdict": classification.verdict,
+        "confidence": classification.confidence,
+        "rationale": classification.rationale,
+        "proposed_patch": classification.proposed_patch or None,
+        "developer_action": developer_action,
+        "received_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        resp = httpx.post(f"{url}/api/sentinel/results", json=payload, timeout=5)
+        resp.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[dim yellow]  Warning: could not notify backend — {exc}[/dim yellow]")
 
 console = Console()
 
@@ -264,7 +316,12 @@ def _handle_uncertain(classification: Classification, member: str) -> str:
 # Public API
 # ---------------------------------------------------------------------------
 
-def present_proposal(classification: Classification, member: str) -> str:
+def present_proposal(
+    classification: Classification,
+    member: str,
+    lib: str = "",
+    srcpf: str = "",
+) -> str:
     """
     Present a classification result to the developer and handle their response.
 
@@ -275,6 +332,8 @@ def present_proposal(classification: Classification, member: str) -> str:
         classification: The Classification from sentinel/classifier.py
         member:         Source member name (e.g. "ORDCALC") used for
                         naming saved patch files.
+        lib:            IBM i library (forwarded to the backend notification).
+        srcpf:          Source physical file (forwarded to the backend notification).
 
     Returns:
         One of: 'accepted' | 'rejected' | 'edited' | 'regression' |
@@ -287,11 +346,18 @@ def present_proposal(classification: Classification, member: str) -> str:
             console.print(
                 f"[yellow]  Bob classified as {classification.verdict} but provided no patch.[/yellow]"
             )
+            _post_to_backend(classification, member, lib, srcpf, "no_patch")
             return "no_patch"
-        return _handle_stale_or_new(classification, member)
+        action = _handle_stale_or_new(classification, member)
+        _post_to_backend(classification, member, lib, srcpf, action)
+        return action
 
     elif classification.verdict == "REGRESSION":
-        return _handle_regression(classification, member)
+        action = _handle_regression(classification, member)
+        _post_to_backend(classification, member, lib, srcpf, action)
+        return action
 
     else:  # UNCERTAIN
-        return _handle_uncertain(classification, member)
+        action = _handle_uncertain(classification, member)
+        _post_to_backend(classification, member, lib, srcpf, action)
+        return action

@@ -6,7 +6,7 @@
  * same origin.
  */
 
-import type { PipelineResult, IncidentBrief } from './types'
+import type { PipelineResult, IncidentBrief, SentinelClassification } from './types'
 
 const BASE = '/api'
 
@@ -79,4 +79,11 @@ export async function fetchOrRunIncident(req: RunIncidentRequest): Promise<Pipel
 export async function deleteIncident(id: string): Promise<void> {
   const res = await fetch(`${BASE}/incidents/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`Failed to delete incident ${id}: ${res.status}`)
+}
+
+/** Fetch all Sentinel RPG test classification results, newest first. */
+export async function listSentinelResults(): Promise<SentinelClassification[]> {
+  const res = await fetch(`${BASE}/sentinel/results`)
+  if (!res.ok) throw new Error(`Failed to fetch Sentinel results: ${res.status}`)
+  return res.json()
 }

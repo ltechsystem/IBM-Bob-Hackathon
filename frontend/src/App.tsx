@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { PipelineResult } from './api/types'
-import { fetchOrRunIncident } from './api/client'
+import type { PipelineResult, SentinelClassification } from './api/types'
+import { fetchOrRunIncident, listSentinelResults } from './api/client'
 
 import StepTracker from './components/pipelines/stepTracker'
 import { Connector } from './components/pipelines/shared'
@@ -13,6 +13,7 @@ import FixRecommenderStage from './components/pipelines/FixRecommenderStage'
 import FixImplementerStage from './components/pipelines/FixImplementerStage'
 import TestValidatorStage from './components/pipelines/TestValidatorStage'
 import ReportGeneratorStage from './components/pipelines/ReportGeneratorStage'
+import SentinelStage from './components/pipelines/SentinelStage'
 import type { Step } from './components/pipelines/stepTracker'
 import type { AgentStatus } from './components/pipelines/shared'
 import { BobAvatar } from './components/icons/StatusIcon'
@@ -86,6 +87,7 @@ export default function App() {
   const [data, setData] = useState<PipelineResult | null>(null)
   const [statuses, setStatuses] = useState<Record<string, AgentStatus>>(ALL_PENDING)
   const [error, setError] = useState<string | null>(null)
+  const [sentinelResults, setSentinelResults] = useState<SentinelClassification[]>([])
 
   useEffect(() => {
     setStatuses(ALL_PENDING)
@@ -106,6 +108,11 @@ export default function App() {
         setStatuses(ALL_PENDING)
         setError(err instanceof Error ? err.message : String(err))
       })
+
+    // Fetch Sentinel results independently — failure is non-fatal
+    listSentinelResults()
+      .then(setSentinelResults)
+      .catch(() => {/* backend may not be running — silently ignore */})
 
     return () => clearInterval(interval)
   }, [])
@@ -235,6 +242,8 @@ export default function App() {
               diffHunk={data.diffHunk}
               testResults={data.testResults}
             />
+            <Connector />
+            <SentinelStage results={sentinelResults} />
           </main>
         )}
       </div>

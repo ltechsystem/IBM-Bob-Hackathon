@@ -184,16 +184,6 @@ py -m sentinel.watcher --lib MYLIB --srcpf QRPGLESRC --mbr ORDCALC --once
 > "Finally, a developer adds a new premium discount tier — a valid feature. All three existing tests still pass, but the new branch has no test at all."
 
 ```powershell
-$env:SENTINEL_STUB_SCENARIO = "all_pass"
-$env:SENTINEL_BOB_STUB_VERDICT = "new_coverage"
-$env:SENTINEL_STUB_COVERAGE_BEFORE = "2/4"
-$env:SENTINEL_STUB_COVERAGE_AFTER = "2/4"
-py -m sentinel.watcher --lib MYLIB --srcpf QRPGLESRC --mbr ORDCALC --once
-```
-
-> **Note:** Because all tests pass in this scenario, the classifier is called on a synthetic zero-failure run. For the demo, drive this step using `demo_proposal.py` instead to guarantee the NEW_COVERAGE_NEEDED path:
-
-```powershell
 py scripts/demo_proposal.py --scenario new_coverage --member ORDCALC
 ```
 
